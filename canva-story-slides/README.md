@@ -43,7 +43,7 @@
 | 26 | In one sentence | 빈 화면 대신 템플릿에서, 혼자 대신 함께. | 방울이 + 말풍선 | 팝 |
 
 ## 수정과 다시 만들기
-`src/slides.src.html`을 고친 뒤 `python3 src/build_html.py index.html`을 실행합니다(fonttools, brotli, npm `pretendard` 패키지 필요). 새 글자를 넣고 다시 빌드하지 않으면 그 글자만 시스템 폰트로 보입니다.
+`src/slides.src.html`을 고친 뒤 `src` 폴더에서 `python3 build_html.py ../index.html <PretendardVariable.woff2 경로>`를 실행합니다(fonttools, brotli 필요, 폰트는 npm `pretendard` 패키지의 `dist/web/variable/woff2`에 있음). 새 글자를 넣고 다시 빌드하지 않으면 그 글자만 시스템 폰트로 보입니다.
 
 ## 배포
 폴더째 Vercel에 올리거나 `index.html`을 아무 정적 호스팅에 올리면 됩니다.
