@@ -1,0 +1,801 @@
+<title>캔바 교실 스토리</title>
+<meta name="description" content="빈 화면 대신 템플릿에서 시작하는 수업 자료 제작: 캔바 활용 교사 연수 스토리형 웹 슬라이드">
+<style>
+/*FONT_FACE*/
+/* Layout: fixed 1600×900 stage scaled to the viewport; one message per slide, scene-first visuals, a paint-drop mascot on every slide */
+:root{
+  --paper:#F6F5FB;      /* stage ground: violet-tinted white, readable on projectors */
+  --card:#FFFFFF;
+  --ink:#1D1530;        /* text */
+  --muted:#6A6380;      /* captions */
+  --line:#E4E0F0;
+  --main:#6B2BD9;       /* Canva-ish violet: the one main colour */
+  --main-soft:#EEE6FD;
+  --accent:#F2541B;     /* emphasis words, numbers that matter */
+  --accent-soft:#FFE7DD;
+  --outside:#14101F;    /* letterbox around the stage */
+  --font:"PretendardSub","Pretendard","Pretendard Variable",-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","맑은 고딕",system-ui,sans-serif;
+  color-scheme:light;
+}
+html,body{height:100%}
+body{margin:0;background:var(--outside);color:var(--ink);font-family:var(--font);overflow:hidden;-webkit-font-smoothing:antialiased;font-feature-settings:"ss06"}
+#viewport{position:fixed;inset:0;display:grid;place-items:center;padding-inline:0}
+#stage{position:relative;width:1600px;height:900px;transform-origin:center center;flex:none;background:var(--paper);overflow:hidden;border-radius:6px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.slide{position:absolute;inset:0;padding:84px 120px 96px;box-sizing:border-box;display:flex;flex-direction:column;visibility:hidden;opacity:0;transition:opacity .35s ease, visibility 0s linear .35s}
+.slide.active{visibility:visible;opacity:1;transition:opacity .35s ease}
+.slide.dark{background:var(--main);color:#fff}
+.label{font-size:22px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--main);margin:0 0 18px}
+.dark .label{color:#CDB8FF}
+h1,h2{margin:0;font-weight:800;letter-spacing:-.02em;text-wrap:balance;line-height:1.18}
+h1{font-size:92px}
+h2{font-size:68px}
+em{font-style:normal;color:var(--accent)}
+.dark em{color:#FFD15C}
+.sub{font-size:30px;color:var(--muted);margin:22px 0 0;line-height:1.5;max-width:1100px}
+.dark .sub{color:#E5DAFF}
+.body{flex:1;display:flex;align-items:center;min-height:0;margin-top:40px}
+.row{display:flex;gap:28px;align-items:stretch;width:100%}
+.col{display:flex;flex-direction:column;gap:20px}
+.card{background:var(--card);border-radius:22px;padding:30px 32px;box-shadow:0 2px 0 var(--line),0 10px 30px rgba(60,30,120,.07)}
+.tag{display:inline-block;font-size:18px;font-weight:700;padding:6px 14px;border-radius:999px;background:var(--main-soft);color:var(--main)}
+.tag.warn{background:var(--accent-soft);color:var(--accent)}
+.big{font-size:132px;font-weight:900;line-height:1;letter-spacing:-.04em;color:var(--main);font-variant-numeric:tabular-nums}
+.cap{font-size:24px;color:var(--muted);line-height:1.45}
+.mono{font-variant-numeric:tabular-nums}
+.example{position:absolute;right:120px;top:88px;font-size:17px;font-weight:700;color:var(--muted);border:1.5px dashed var(--line);padding:6px 12px;border-radius:8px;background:var(--card)}
+
+/* mascot */
+.mascot{width:64px;height:76px;position:absolute;left:120px;bottom:30px}
+.mascot.big{position:static;width:260px;height:310px}
+.mascot.mid{position:static;width:150px;height:180px}
+.bubble{position:relative;background:var(--card);border-radius:20px;padding:18px 24px;font-size:26px;font-weight:700;box-shadow:0 8px 24px rgba(60,30,120,.12)}
+.bubble::after{content:"";position:absolute;left:-12px;top:30px;border:12px solid transparent;border-right-color:var(--card);border-left:0}
+
+/* chrome */
+#hud{position:absolute;right:120px;bottom:34px;font-size:22px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums;letter-spacing:.06em;pointer-events:none}
+#hud b{color:var(--main)}
+.on-dark #hud{color:#E5DAFF}.on-dark #hud b{color:#fff}
+#progress{position:absolute;left:0;top:0;height:6px;background:var(--accent);transition:width .4s ease}
+#controls{position:fixed;right:16px;top:calc(16px + env(safe-area-inset-top,0px));display:flex;gap:8px;z-index:5;opacity:.25;transition:opacity .2s}
+#controls:hover,#controls:focus-within{opacity:1}
+#controls button{font:600 14px var(--font);color:#fff;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);border-radius:10px;padding:8px 12px;cursor:pointer}
+#controls button:focus-visible{outline:2px solid #FFD15C;outline-offset:2px}
+
+/* motion: only on the active slide, 0.4–0.8s each, staggered by --i */
+.slide.active .a{animation:fadeUp .6s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--i,0)*.13s + .12s)}
+.slide.active .pop{animation:pop .5s cubic-bezier(.3,1.5,.5,1) both;animation-delay:calc(var(--i,0)*.13s + .12s)}
+.slide.active .grow-x{transform-origin:left center;animation:growX .8s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--i,0)*.13s + .2s)}
+.slide.active .grow-y{transform-origin:center bottom;animation:growY .8s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--i,0)*.13s + .2s)}
+.slide.active .draw{stroke-dasharray:1;stroke-dashoffset:1;animation:draw .8s ease-out forwards;animation-delay:calc(var(--i,0)*.13s + .2s)}
+.slide.active .bob{animation:bob 2.6s ease-in-out infinite}
+@keyframes fadeUp{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
+@keyframes pop{0%{opacity:0;transform:scale(.6)}70%{opacity:1;transform:scale(1.06)}100%{transform:scale(1)}}
+@keyframes growX{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes growY{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes draw{to{stroke-dashoffset:0}}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@media (prefers-reduced-motion:reduce){
+  .slide.active .a,.slide.active .pop,.slide.active .grow-x,.slide.active .grow-y,.slide.active .bob{animation:none}
+  .slide.active .draw{animation:none;stroke-dashoffset:0}
+  .slide{transition:none}
+}
+
+/* scene: notifications */
+.phone{width:520px;background:#1D1530;border-radius:44px;padding:28px 22px;display:flex;flex-direction:column;gap:14px}
+.noti{background:#fff;border-radius:18px;padding:16px 20px;display:flex;gap:16px;align-items:center}
+.noti .t{font-size:22px;font-weight:800;color:var(--main);min-width:74px}
+.noti .m{font-size:23px;line-height:1.35}
+.noti.hot .t{color:var(--accent)}
+/* stacked time bar */
+.stack{display:flex;height:120px;border-radius:18px;overflow:hidden;width:100%}
+.stack>div{display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;color:#fff}
+/* flow */
+.flow{display:flex;align-items:center;gap:24px;width:100%;justify-content:center}
+.node{background:var(--card);border-radius:26px;padding:34px 30px;text-align:center;font-size:34px;font-weight:800;box-shadow:0 10px 30px rgba(60,30,120,.08);min-width:240px}
+.node small{display:block;font-size:22px;color:var(--muted);font-weight:600;margin-top:10px}
+.arrow{width:90px;height:40px;flex:none}
+.chapter-flow .node{min-width:0;flex:1;padding:34px 18px;font-size:40px}
+/* search */
+.search{display:flex;align-items:center;gap:22px;background:var(--card);border:4px solid var(--main);border-radius:999px;padding:24px 36px;font-size:44px;font-weight:700;width:100%;box-sizing:border-box}
+.caret{display:inline-block;width:4px;height:48px;background:var(--main);margin-left:4px;vertical-align:middle;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.chips{display:flex;flex-wrap:wrap;gap:14px}
+.chip{font-size:26px;font-weight:700;padding:12px 24px;border-radius:999px;background:var(--main-soft);color:var(--main)}
+/* copies grid */
+.copies{display:grid;grid-template-columns:repeat(10,58px);gap:14px}
+.copy{width:58px;height:74px;border-radius:8px;background:var(--main-soft);border:2px solid #D7C6FA;position:relative}
+.copy::before{content:"";position:absolute;left:10px;right:10px;top:12px;height:8px;border-radius:4px;background:var(--main)}
+.copy::after{content:"";position:absolute;left:10px;right:18px;top:28px;height:6px;border-radius:3px;background:#C9B6F5;box-shadow:0 12px 0 #C9B6F5,0 24px 0 #C9B6F5}
+/* board */
+.board{position:relative;width:820px;height:520px;background:var(--card);border-radius:24px;box-shadow:0 10px 30px rgba(60,30,120,.08);background-image:radial-gradient(var(--line) 2px,transparent 2px);background-size:28px 28px}
+.sticky{position:absolute;width:150px;height:130px;padding:14px;box-sizing:border-box;font-size:22px;font-weight:700;line-height:1.3;border-radius:6px;box-shadow:0 6px 14px rgba(0,0,0,.08)}
+/* bars */
+.bars{display:flex;align-items:flex-end;gap:120px;height:440px;padding-bottom:0}
+.bar{width:220px;border-radius:18px 18px 0 0;position:relative}
+.bar .v{position:absolute;top:-70px;left:0;right:0;text-align:center;font-size:52px;font-weight:900}
+.bar .k{position:absolute;bottom:-56px;left:-40px;right:-40px;text-align:center;font-size:26px;font-weight:700;color:var(--muted)}
+/* grid of six */
+.six{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;width:100%}
+.six .card h3{margin:0 0 10px;font-size:34px}
+.six .card p{margin:0;font-size:25px;color:var(--muted);line-height:1.45}
+.ico{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;background:var(--main-soft);color:var(--main);margin-bottom:16px}
+.ico svg{width:34px;height:34px}
+/* timeline */
+.tl{display:flex;width:100%;gap:8px}
+.tl>div{height:96px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:800;color:#fff}
+.tl-desc{display:flex;width:100%;gap:8px;margin-top:22px}
+.tl-desc>div{font-size:24px;line-height:1.45}
+.tl-desc b{display:block;font-size:30px;margin-bottom:6px}
+a.btn{display:inline-flex;align-items:center;gap:12px;font-size:28px;font-weight:800;color:#fff;background:var(--accent);padding:18px 30px;border-radius:999px;text-decoration:none}
+a.btn:focus-visible{outline:3px solid var(--main);outline-offset:3px}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- 방울이: the paint-drop mascot -->
+    <symbol id="drop" viewBox="0 0 120 144">
+      <path d="M60 4 C60 4 12 62 12 92 a48 48 0 0 0 96 0 C108 62 60 4 60 4Z" fill="#7C3AED"/>
+      <path d="M40 60 C34 72 30 82 30 92" stroke="#fff" stroke-opacity=".45" stroke-width="7" stroke-linecap="round" fill="none"/>
+      <circle cx="44" cy="96" r="7" fill="#1D1530"/><circle cx="76" cy="96" r="7" fill="#1D1530"/>
+      <circle cx="46.5" cy="93.5" r="2.4" fill="#fff"/><circle cx="78.5" cy="93.5" r="2.4" fill="#fff"/>
+      <path d="M50 110 q10 9 20 0" stroke="#1D1530" stroke-width="5" stroke-linecap="round" fill="none"/>
+      <ellipse cx="33" cy="108" rx="7" ry="4.5" fill="#FF8FB1"/><ellipse cx="87" cy="108" rx="7" ry="4.5" fill="#FF8FB1"/>
+    </symbol>
+    <symbol id="arrow" viewBox="0 0 90 40"><path d="M4 20 H80 M64 6 L82 20 L64 34" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" stroke-width="2.4" fill="none"/><path d="M15.5 15.5 L21 21" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+    <symbol id="i-pen" viewBox="0 0 24 24"><path d="M4 20 l1-5 L15.5 4.5 a2.1 2.1 0 0 1 3 0 l1 1 a2.1 2.1 0 0 1 0 3 L9 19 Z" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linejoin="round"/></symbol>
+    <symbol id="i-share" viewBox="0 0 24 24"><circle cx="6" cy="12" r="3" fill="currentColor"/><circle cx="18" cy="5.5" r="3" fill="currentColor"/><circle cx="18" cy="18.5" r="3" fill="currentColor"/><path d="M8.5 10.7 L15.5 6.8 M8.5 13.3 L15.5 17.2" stroke="currentColor" stroke-width="2.2"/></symbol>
+    <symbol id="i-tray" viewBox="0 0 24 24"><path d="M3 13 h5 l1.5 3 h5 l1.5-3 h5 v6 a1.5 1.5 0 0 1-1.5 1.5 h-15 A1.5 1.5 0 0 1 3 19Z M5 13 l2.5-8 h9 l2.5 8" stroke="currentColor" stroke-width="2.1" fill="none" stroke-linejoin="round"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5 a2 2 0 0 1 2-2 h13 v16 H6 a2 2 0 0 0-2 2Z M4 19 V5" stroke="currentColor" stroke-width="2.1" fill="none" stroke-linejoin="round"/></symbol>
+    <symbol id="i-calc" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" stroke-width="2.1" fill="none"/><path d="M8 7 h8 M8.5 12 h1 M14.5 12 h1 M8.5 16 h1 M14.5 16 h1" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2.1" fill="none"/><path d="M3 12 h18 M12 3 c3 3 3 15 0 18 M12 3 c-3 3-3 15 0 18" stroke="currentColor" stroke-width="2" fill="none"/></symbol>
+    <symbol id="i-flask" viewBox="0 0 24 24"><path d="M9 3 h6 M10 3 v6 L4.5 19 a1.5 1.5 0 0 0 1.3 2 h12.4 a1.5 1.5 0 0 0 1.3-2 L14 9 V3 M7 15 h10" stroke="currentColor" stroke-width="2.1" fill="none" stroke-linejoin="round" stroke-linecap="round"/></symbol>
+    <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 5 h16 v11 H10 l-5 4 v-4 H4Z" stroke="currentColor" stroke-width="2.1" fill="none" stroke-linejoin="round"/><path d="M8 9.5 h8 M8 12.5 h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-brush" viewBox="0 0 24 24"><path d="M14 4 l6 6 -8 8 -6-6Z M6 12 c-3 1-3 5-3 8 3 0 7 0 8-3" stroke="currentColor" stroke-width="2.1" fill="none" stroke-linejoin="round"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3 l2 6 6 2 -6 2 -2 6 -2-6 -6-2 6-2Z" fill="currentColor"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5 l4.5 4.5 L19 7" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6 L18 18 M18 6 L6 18" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></symbol>
+  </defs>
+</svg>
+
+<div id="viewport">
+<div id="stage" aria-live="polite">
+<div id="progress"></div>
+
+<!-- 01 Cover -->
+<section class="slide dark" data-title="표지">
+  <p class="label a">Teacher training · Canva</p>
+  <div class="row" style="flex:1;align-items:center">
+    <div style="flex:1">
+      <h1 class="a" style="--i:1">빈 화면 말고,<br><em>템플릿</em>에서 시작하는 수업</h1>
+      <p class="sub a" style="--i:2">캔바로 수업 자료를 10분 만에 만들고, 학생과 함께 완성하는 법</p>
+    </div>
+    <div class="pop" style="--i:3"><svg class="mascot big bob" style="filter:drop-shadow(0 20px 30px rgba(0,0,0,.25))"><use href="#drop"/></svg></div>
+  </div>
+  <p class="cap a" style="--i:4;color:#E5DAFF;margin:0">안내자 · 물감 방울 <b style="color:#fff">방울이</b>와 함께합니다</p>
+</section>
+
+<!-- 02 Scene -->
+<section class="slide" data-title="공감 장면">
+  <p class="label a">A familiar evening</p>
+  <div class="row" style="flex:1;align-items:center;gap:80px">
+    <div style="flex:1">
+      <h2 class="a" style="--i:1">21:40,<br>내일 수업 자료는<br>아직 <em>빈 화면</em>입니다</h2>
+      <p class="sub a" style="--i:2">익숙한 장면이죠?</p>
+    </div>
+    <div class="phone">
+      <div class="noti a" style="--i:2"><span class="t mono">18:10</span><span class="m">퇴근. 자료는 집에서 마저 하기로</span></div>
+      <div class="noti a" style="--i:3"><span class="t mono">20:30</span><span class="m">노트북을 켜고 새 슬라이드 열기</span></div>
+      <div class="noti hot a" style="--i:4"><span class="t mono">21:40</span><span class="m">제목만 쓰고 커서가 깜빡이는 중</span></div>
+      <div class="noti a" style="--i:5"><span class="t mono">22:50</span><span class="m">어울리는 그림 찾느라 검색만 40분째</span></div>
+      <div class="noti hot a" style="--i:6"><span class="t mono">00:20</span><span class="m">결국 글머리표 다섯 줄로 마무리</span></div>
+    </div>
+  </div>
+  <svg class="mascot"><use href="#drop"/></svg>
+</section>
+
+<!-- 03 Real problem: time -->
+<section class="slide" data-title="진짜 문제">
+  <p class="label a">The problem</p>
+  <h2 class="a" style="--i:1">시간은 <em>내용</em>보다 <em>꾸미기</em>에 더 많이 쓰입니다</h2>
+  <span class="example" data-example>예시 수치</span>
+  <div class="body" style="flex-direction:column;justify-content:center;gap:30px">
+    <div class="cap a" style="--i:2;align-self:flex-start">자료 1개를 만드는 60분, 어디에 썼을까요?</div>
+    <div class="stack">
+      <div class="grow-x" style="--i:3;flex:20;background:var(--main)">내용 구상 20분</div>
+      <div class="grow-x" style="--i:4;flex:25;background:var(--accent)">이미지 찾기 25분</div>
+      <div class="grow-x" style="--i:5;flex:15;background:#9A88C9">정렬·꾸미기 15분</div>
+    </div>
+    <p class="sub a" style="--i:6;align-self:flex-start;margin:0">수업을 고민하는 시간은 <b style="color:var(--ink)">3분의 1</b>뿐입니다.</p>
+  </div>
+  <svg class="mascot"><use href="#drop"/></svg>
+</section>
+
+<!-- 04 Real problem: scattered paths -->
+<section class="slide" data-title="흩어진 경로">
+  <p class="label a">The problem, part two</p>
+  <h2 class="a" style="--i:1">나누고 모으는 길도 <em>제각각</em>입니다</h2>
+  <div class="body">
+    <svg viewBox="0 0 1360 440" style="width:100%;height:440px" role="img" aria-label="교사에서 학생 30명까지 인쇄물, 메신저, USB, 클래스룸 네 갈래로 흩어진 경로">
+      <rect x="0" y="150" width="240" height="140" rx="26" fill="var(--card)"/>
+      <text x="120" y="232" text-anchor="middle" font-size="38" font-weight="800" fill="var(--ink)">교사</text>
+      <rect x="1120" y="150" width="240" height="140" rx="26" fill="var(--card)"/>
+      <text x="1240" y="218" text-anchor="middle" font-size="38" font-weight="800" fill="var(--ink)">학생 30명</text>
+      <text x="1240" y="258" text-anchor="middle" font-size="24" fill="var(--muted)">제출물은 어디에?</text>
+      <path class="draw" style="--i:2" pathLength="1" d="M240 190 C 480 20, 880 20, 1120 190" stroke="#6B2BD9" stroke-width="8" fill="none" stroke-linecap="round"/>
+      <path class="draw" style="--i:3" pathLength="1" d="M240 210 C 520 120, 840 300, 1120 210" stroke="#F2541B" stroke-width="8" fill="none" stroke-linecap="round"/>
+      <path class="draw" style="--i:4" pathLength="1" d="M240 230 C 520 320, 840 140, 1120 230" stroke="#9A88C9" stroke-width="8" fill="none" stroke-linecap="round"/>
+      <path class="draw" style="--i:5" pathLength="1" d="M240 250 C 480 420, 880 420, 1120 250" stroke="#1D1530" stroke-width="8" fill="none" stroke-linecap="round"/>
+      <g font-size="28" font-weight="800">
+        <text class="a" style="--i:3" x="680" y="58" text-anchor="middle" fill="#6B2BD9">인쇄 → 배부 → 수거</text>
+        <text class="a" style="--i:4" x="560" y="170" text-anchor="middle" fill="#F2541B">메신저 파일</text>
+        <text class="a" style="--i:5" x="820" y="290" text-anchor="middle" fill="#7A69A8">USB · 이메일</text>
+        <text class="a" style="--i:6" x="680" y="410" text-anchor="middle" fill="#1D1530">클래스룸 링크</text>
+      </g>
+    </svg>
+  </div>
+  <svg class="mascot"><use href="#drop"/></svg>
+</section>
+
+<!-- 05 Idea -->
+<section class="slide" data-title="발상 전환">
+  <p class="label a">A tiny idea</p>
+  <h2 class="a" style="--i:1">빈 화면 대신, <em>거의 완성된 화면</em>에서 시작하면?</h2>
+  <div class="body">
+    <div class="flow">
+      <div class="node a" style="--i:2">템플릿<small>이미 디자인된 화면</small></div>
+      <svg class="arrow a" style="--i:3;color:var(--muted)"><use href="#arrow"/></svg>
+      <div class="pop" style="--i:4;text-align:center"><svg class="mascot mid"><use href="#drop"/></svg><div class="cap" style="margin-top:6px">고르고 바꾸고</div></div>
+      <svg class="arrow a" style="--i:5;color:var(--muted)"><use href="#arrow"/></svg>
+      <div class="node a" style="--i:6;background:var(--main);color:#fff">우리 반 자료<small style="color:#E5DAFF">내용만 채우면 끝</small></div>
+    </div>
+  </div>
+</section>
+
+<!-- 06 Meet Canva -->
+<section class="slide" data-title="캔바 소개">
+  <p class="label a">Meet Canva</p>
+  <h2 class="a" style="--i:1">캔바는 <em>고르고, 바꾸고, 나누는</em> 디자인 도구입니다</h2>
+  <div class="body">
+    <div class="row">
+      <div class="card a" style="--i:2;flex:1"><div class="ico"><svg><use href="#i-search"/></svg></div><h3 style="margin:0 0 8px;font-size:38px">고르고</h3><p class="cap" style="margin:0">수업 PPT, 학습지, 포스터, 영상 템플릿을 검색해서 선택</p></div>
+      <div class="card a" style="--i:3;flex:1"><div class="ico"><svg><use href="#i-pen"/></svg></div><h3 style="margin:0 0 8px;font-size:38px">바꾸고</h3><p class="cap" style="margin:0">글자와 사진만 우리 반 내용으로 끌어다 바꾸기</p></div>
+      <div class="card a" style="--i:4;flex:1"><div class="ico"><svg><use href="#i-share"/></svg></div><h3 style="margin:0 0 8px;font-size:38px">나누고</h3><p class="cap" style="margin:0">링크 하나로 공유하고 여러 명이 동시에 편집</p></div>
+    </div>
+  </div>
+  <svg class="mascot"><use href="#drop"/></svg>
+</section>
+
+<!-- 07 Free for education -->
+<section class="slide" data-title="교육용 무료">
+  <p class="label a">Canva for Education</p>
+  <h2 class="a" style="--i:1">교사 인증 한 번이면, <em>우리 반 모두</em> 무료</h2>
+  <div class="body">
+    <div class="row" style="align-items:center;gap:80px">
+      <div style="text-align:center">
+        <div class="big pop" style="--i:2;font-size:220px;color:var(--accent)">0원</div>
+        <div class="cap a" style="--i:3">초·중·고 교사와 학생</div>
+      </div>
+      <div class="col" style="flex:1;gap:18px">
+        <div class="card a" style="--i:3;display:flex;gap:20px;align-items:center"><span class="tag">1</span><span style="font-size:30px;font-weight:700">canva.com/education 에서 교사로 가입</span></div>
+        <div class="card a" style="--i:4;display:flex;gap:20px;align-items:center"><span class="tag">2</span><span style="font-size:30px;font-weight:700">재직 증빙 제출, 승인 기다리기</span></div>
+        <div class="card a" style="--i:5;display:flex;gap:20px;align-items:center"><span class="tag">3</span><span style="font-size:30px;font-weight:700">클래스를 만들어 학생 초대</span></div>
+        <p class="cap a" style="--i:6;margin:4px 0 0">승인까지 며칠 걸릴 수 있으니 미리 신청하세요.</p>
+      </div>
+    </div>
+  </div>
+  <svg class="mascot"><use href="#drop"/></svg>
+</section>
+
+<!-- 08 Evidence -->
+<section class="slide" data-title="근거">
+  <p class="label a">What teachers told us</p>
+  <h2 class="a" style="--i:1">선생님들께 물었더니, <em>부담</em>은 디자인에 있었습니다</h2>
+  <span class="example" data-example>예시 수치</span>
+  <div class="body">
+    <div class="row">
+      <div class="card a" style="--i:2;flex:1;text-align:center;padding:44px 24px"><div class="big"><span data-count="82">82</span><small style="font-size:.5em">%</small></div><p class="cap" style="margin:18px 0 0">“자료 꾸미는 일이<br>부담스럽다”</p></div>
+      <div class="card a" style="--i:3;flex:1;text-align:center;padding:44px 24px"><div class="big" style="color:var(--accent)"><span data-count="4.5" data-dec="1">4.5</span><small style="font-size:.4em">시간</small></div><p class="cap" style="margin:18px 0 0">일주일 동안<br>자료 제작에 쓰는 시간</p></div>
+      <div class="card a" style="--i:4;flex:1;text-align:center;padding:44px 24px"><div class="big"><span data-count="4">4</span><small style="font-size:.4em">곳 이상</small></div><p class="cap" style="margin:18px 0 0">자료를 나누고 걷는<br>경로의 수</p></div>
+    </div>
+  </div>
+  <svg class="mascot"><use href="#drop"/></svg>
+</section>
+
+<!-- 09 Reframe -->
+<section class="slide" data-title="문제 재정의">
+  <p class="label a">Rethinking the problem</p>
+  <h2 class="a" style="--i:1">디자인을 <em>배울</em> 필요는 없었습니다</h2>
+  <div class="body">
+    <div class="row" style="align-items:center">
+      <div class="card a" style="--i:2;flex:1;padding:44px">
+        <span class="tag">처음 생각</span>
+        <p style="font-size:44px;font-weight:800;margin:22px 0 0;color:var(--muted);text-decoration:line-through;text-decoration-thickness:4px">디자인 감각을<br>길러야 한다</p>
+      </div>
+      <svg class="arrow a" style="--i:3;color:var(--accent);width:120px"><use href="#arrow"/></svg>
+      <div class="card a" style="--i:4;flex:1;padding:44px;background:var(--main);color:#fff">
+        <span class="tag" style="background:#fff">다시 보니</span>
+        <p style="font-size:44px;font-weight:800;margin:22px 0 0">잘 만든 것을 <span style="color:#FFD15C">고르고 바꾸면</span> 된다</p>
+      </div>
+    </div>
+  </div>
+  <svg class="mascot"><use href="#drop"/></svg>
+</section>
+
+<!-- 10 Chapter: four steps -->
+<section class="slide dark" data-title="챕터: 네 단계">
+  <p class="label a">Chapter 1 · How it works</p>
+  <h2 class="a" style="--i:1;font-size:84px">네 단계면 충분합니다</h2>
+  <div class="body">
+    <div class="flow chapter-flow" style="gap:14px">
+      <div class="node pop" style="--i:2;color:var(--ink)">찾기<small>템플릿 검색</small></div>
+      <svg class="arrow a" style="--i:3;color:#CDB8FF;width:70px"><use href="#arrow"/></svg>
+      <div class="node pop" style="--i:4;color:var(--ink)">바꾸기<small>우리 반 내용</small></div>
+      <svg class="arrow a" style="--i:5;color:#CDB8FF;width:70px"><use href="#arrow"/></svg>
+      <div class="node pop" style="--i:6;color:var(--ink)">나누기<small>템플릿 링크</small></div>
+      <svg class="arrow a" style="--i:7;color:#CDB8FF;width:70px"><use href="#arrow"/></svg>
+      <div class="node pop" style="--i:8;color:var(--ink)">모으기<small>과제와 피드백</small></div>
+    </div>
+  </div>
+</section>
+
+<!-- 11 Step 1 search -->
+<section class="slide" data-title="1단계 찾기" data-type="search">
+  <p class="label a">Step 01 · Find</p>
+  <h2 class="a" style="--i:1">검색창에 <em>학년 + 교과 + 용도</em>를 함께 적으세요</h2>
+  <div class="body" style="flex-direction:column;align-items:stretch;justify-content:center;gap:34px">
+    <div class="search a" style="--i:2"><svg style="width:48px;height:48px;color:var(--main);flex:none"><use href="#i-search"/></svg><span><span class="typed" data-text="중학교 과학 학습지"></span><span class="caret"></span></span></div>
+    <div class="chips">
+      <span class="chip pop" style="--i:4">초등 3학년 독서 기록장</span>
+      <span class="chip pop" style="--i:5">고등 영어 발표 PPT</span>
+      <span class="chip pop" style="--i:6">학급 규칙 포스터</span>
+      <span class="chip pop" style="--i:7">worksheet</span>
+      <span class="chip pop" style="--i:8">infographic</span>
+    </div>
+    <p class="cap a" style="--i:9;margin:0">영어로 검색하면 고를 템플릿이 훨씬 많아집니다. 마음에 들면 별표로 저장!</p>
+  </div>
+  <svg class="mascot"><use href="#drop"/></svg>
+</section>
+
+<!-- 12 Step 2 swap -->
+<section class="slide" data-title="2단계 바꾸기">
+  <p class="label a">Step 02 · Make it yours</p>
+  <h2 class="a" style="--i:1">디자인은 그대로, <em>내용만</em> 바꿉니다</h2>
+  <div class="body">
+    <div class="row" style="align-items:center;gap:40px">
+      <div class="card a" style="--i:2;width:360px;flex:none;padding:0;overflow:hidden">
+        <div style="background:#C9B6F5;height:180px;display:grid;place-items:center;font-size:24px;color:#fff;font-weight:700">사진 자리</div>
+        <div style="padding:26px"><div style="font-size:36px;font-weight:800;color:var(--muted)">Your Title Here</div><div class="cap">Subtitle goes here</div></div>
+      </div>
+      <svg class="arrow a" style="--i:3;color:var(--accent);width:110px"><use href="#arrow"/></svg>
+      <div class="card pop" style="--i:4;width:360px;flex:none;padding:0;overflow:hidden">
+        <div style="background:var(--main);height:180px;display:grid;place-items:center"><svg style="width:120px;height:144px"><use href="#drop"/></svg></div>
+        <div style="padding:26px"><div style="font-size:36px;font-weight:800">식물의 한살이</div><div class="cap">3학년 2반 관찰 일지</div></div>
+      </div>
+      <div class="col" style="flex:1;min-width:0;gap:22px">
+        <div class="a" style="--i:5;font-size:28px;font-weight:700"><span class="tag">글자</span> 두 번 클릭해서 바로 수정</div>
+        <div class="a" style="--i:6;font-size:28px;font-weight:700"><span class="tag">사진</span> 끌어다 놓으면 자리에 쏙</div>
+        <div class="a" style="--i:7;font-size:28px;font-weight:700"><span class="tag">색</span> 학교 색으로 한 번에</div>
+      </div>
+    </div>
+  </div>
+  <svg class="mascot"><use href="#drop"/></svg>
+</section>
+
+<!-- 13 Step 3 share: one to thirty -->
+<section class="slide" data-title="3단계 나누기" data-type="copies">
+  <p class="label a">Step 03 · Share</p>
+  <h2 class="a" style="--i:1"><em>템플릿 링크</em> 하나면, 원본 하나가 사본 30장이 됩니다</h2>
+  <div class="body">
+    <div class="row" style="align-items:center;gap:50px">
+      <div class="col a" style="--i:2;align-items:center;gap:14px">
+        <div class="copy" style="width:150px;height:190px;border-width:4px"></div>
+        <span class="tag warn" style="font-size:22px">원본은 그대로</span>
+      </div>
+      <svg class="arrow a" style="--i:3;color:var(--accent);width:110px"><use href="#arrow"/></svg>
+      <div class="copies" id="copies"></div>
+    </div>
+  </div>
+  <p class="cap a" style="--i:4;margin:0 0 24px">공유 → <b>템플릿 링크</b>로 보내면 학생마다 자기 사본에서 작업합니다.</p>
+  <svg class="mascot"><use href="#drop"/></svg>
+</section>
+
+<!-- 14 Step 4 collect -->
+<section class="slide" data-title="4단계 모으기">
+  <p class="label a">Step 04 · Collect &amp; feedback</p>
+  <h2 class="a" style="--i:1">제출과 피드백이 <em>한 화면</em>에서 돌아갑니다</h2>
+  <div class="body">
+    <svg viewBox="0 0 1360 460" style="width:100%;height:460px" role="img" aria-label="과제 배포, 학생 작업, 제출, 댓글 피드백, 수정 후 재제출로 이어지는 순환">
+      <path class="draw" style="--i:2" pathLength="1" d="M330 230 C 330 60, 1030 60, 1030 230 C 1030 400, 330 400, 330 230" stroke="var(--main)" stroke-width="6" fill="none" stroke-dasharray="1"/>
+      <g font-weight="800" text-anchor="middle">
+        <g class="pop" style="--i:3"><rect x="180" y="170" width="300" height="120" rx="24" fill="var(--card)"/><text x="330" y="225" font-size="34" fill="var(--ink)">과제 배포</text><text x="330" y="262" font-size="22" fill="var(--muted)">교사</text></g>
+        <g class="pop" style="--i:4"><rect x="530" y="40" width="300" height="120" rx="24" fill="var(--card)"/><text x="680" y="95" font-size="34" fill="var(--ink)">사본에서 작업</text><text x="680" y="132" font-size="22" fill="var(--muted)">학생</text></g>
+        <g class="pop" style="--i:5"><rect x="880" y="170" width="300" height="120" rx="24" fill="var(--card)"/><text x="1030" y="225" font-size="34" fill="var(--ink)">제출</text><text x="1030" y="262" font-size="22" fill="var(--muted)">학생</text></g>
+        <g class="pop" style="--i:6"><rect x="530" y="300" width="300" height="120" rx="24" fill="var(--accent)"/><text x="680" y="355" font-size="34" fill="#fff">댓글 피드백</text><text x="680" y="392" font-size="22" fill="#FFE7DD">교사 → 수정 → 재제출</text></g>
+      </g>
+    </svg>
+  </div>
+  <svg class="mascot"><use href="#drop"/></svg>
+</section>
+
+<!-- 15 Chapter: classroom -->
+<section class="slide dark" data-title="챕터: 수업 속으로">
+  <p class="label a">Chapter 2 · In the classroom</p>
+  <h2 class="a" style="--i:1;font-size:84px">수업 속 다섯 장면</h2>
+  <div class="body" style="align-items:flex-end">
+    <div class="row" style="justify-content:space-between;align-items:flex-end">
+      <div class="chips" style="gap:18px;max-width:1000px">
+        <span class="chip pop" style="--i:2;background:#fff;font-size:32px">수업 PPT</span>
+        <span class="chip pop" style="--i:3;background:#fff;font-size:32px">학습지</span>
+        <span class="chip pop" style="--i:4;background:#fff;font-size:32px">화이트보드</span>
+        <span class="chip pop" style="--i:5;background:#fff;font-size:32px">교과 프로젝트</span>
+        <span class="chip pop" style="--i:6;background:#fff;font-size:32px">40분 수업 설계</span>
+      </div>
+      <svg class="mascot mid bob pop" style="--i:7"><use href="#drop"/></svg>
+    </div>
+  </div>
+</section>
+
+<!-- 16 Presentation -->
+<section class="slide" data-title="수업 PPT">
+  <p class="label a">Scene 1 · Slides</p>
+  <h2 class="a" style="--i:1">발표 화면은 학생에게, <em>메모</em>는 나에게</h2>
+  <div class="body">
+    <div class="row" style="align-items:center;gap:40px">
+      <div class="a" style="--i:2;flex:1.4;background:#1D1530;border-radius:24px;padding:24px;display:flex;gap:20px">
+        <div style="flex:2;background:var(--main);border-radius:12px;aspect-ratio:16/9;display:grid;place-items:center;color:#fff;font-size:34px;font-weight:800">오늘의 질문</div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:12px">
+          <div style="background:#3A2F55;border-radius:10px;aspect-ratio:16/9"></div>
+          <div style="background:#2A2140;border-radius:10px;padding:12px;color:#CFC6E6;font-size:18px;line-height:1.5;flex:1">메모: 3분간 짝 토의 후 발표</div>
+          <div style="display:flex;align-items:center;gap:8px;color:#fff;font-size:18px;font-weight:700"><span style="width:14px;height:14px;border-radius:50%;background:var(--accent)"></span>REC 12:40</div>
+        </div>
+      </div>
+      <div class="col" style="flex:1;gap:22px">
+        <div class="card a" style="--i:3"><b style="font-size:30px">발표자 보기</b><p class="cap" style="margin:8px 0 0">다음 장면과 메모를 보며 진행</p></div>
+        <div class="card a" style="--i:4"><b style="font-size:30px">발표 녹화</b><p class="cap" style="margin:8px 0 0">목소리를 입혀 복습 영상으로</p></div>
+        <div class="card a" style="--i:5"><b style="font-size:30px">PPTX로 내보내기</b><p class="cap" style="margin:8px 0 0">학교 PC 파워포인트에서도</p></div>
+      </div>
+    </div>
+  </div>
+  <svg class="mascot"><use href="#drop"/></svg>
+</section>
+
+<!-- 17 Worksheet -->
+<section class="slide" data-title="학습지">
+  <p class="label a">Scene 2 · Worksheets</p>
+  <h2 class="a" style="--i:1">같은 학습지를 <em>종이</em>로도, <em>화면</em>으로도</h2>
+  <div class="body">
+    <div class="row" style="align-items:center;justify-content:center;gap:90px">
+      <div class="col a" style="--i:2;align-items:center">
+        <div style="width:300px;height:400px;background:var(--card);border-radius:8px;box-shadow:0 14px 34px rgba(60,30,120,.14);padding:26px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px">
+          <div style="background:var(--main);color:#fff;border-radius:8px;padding:10px;font-size:22px;font-weight:800;text-align:center">관찰 기록지</div>
+          <div style="display:flex;gap:10px;align-items:center"><span style="width:22px;height:22px;border:2.5px solid var(--muted);border-radius:4px"></span><span style="flex:1;height:5px;background:var(--line)"></span></div>
+          <div style="display:flex;gap:10px;align-items:center"><span style="width:22px;height:22px;border:2.5px solid var(--muted);border-radius:4px"></span><span style="flex:1;height:5px;background:var(--line)"></span></div>
+          <div style="display:flex;gap:10px;align-items:center"><span style="width:22px;height:22px;border:2.5px solid var(--muted);border-radius:4px"></span><span style="flex:1;height:5px;background:var(--line)"></span></div>
+          <div style="flex:1;background:var(--main-soft);border-radius:8px"></div>
+        </div>
+        <span class="tag" style="font-size:24px">PDF 인쇄로 저장</span>
+      </div>
+      <div class="pop" style="--i:3;font-size:60px;font-weight:900;color:var(--accent)">+</div>
+      <div class="col a" style="--i:4;align-items:center">
+        <div style="width:440px;height:300px;background:#1D1530;border-radius:26px;padding:18px;box-sizing:border-box"><div style="background:var(--card);border-radius:12px;height:100%;padding:20px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px">
+          <div style="background:var(--main);color:#fff;border-radius:8px;padding:8px;font-size:20px;font-weight:800;text-align:center">관찰 기록지</div>
+          <div style="font-size:20px;font-weight:700;color:var(--main)">✓ 떡잎이 두 장 나왔다</div>
+          <div style="font-size:20px;font-weight:700;color:var(--main)">✓ 줄기가 3cm 자랐다</div>
+          <div style="flex:1;background:var(--main-soft);border-radius:8px"></div>
+        </div></div>
+        <span class="tag" style="font-size:24px">템플릿 링크로 배포</span>
+      </div>
+    </div>
+  </div>
+  <svg class="mascot"><use href="#drop"/></svg>
+</section>
+
+<!-- 18 Whiteboard -->
+<section class="slide" data-title="화이트보드">
+  <p class="label a">Scene 3 · Whiteboard</p>
+  <div class="row" style="flex:1;gap:60px">
+    <div style="flex:1;display:flex;flex-direction:column">
+      <h2 class="a" style="--i:1">반 전체가<br><em>한 화면</em>에서<br>생각합니다</h2>
+      <p class="sub a" style="--i:2">모둠별 구역을 미리 나눠 두고, 타이머를 띄우고, 좋은 생각에는 스티커로 투표.</p>
+    </div>
+    <div class="board a" style="--i:1;align-self:center">
+      <div style="position:absolute;left:24px;top:20px;font-size:22px;font-weight:800;color:var(--muted)">우리 마을에 필요한 것은?</div>
+      <div style="position:absolute;right:24px;top:16px;font-size:26px;font-weight:900;color:var(--accent)" class="mono">⏱ 05:00</div>
+      <div class="sticky pop" style="--i:3;left:40px;top:80px;background:#FFE58A;transform:rotate(-3deg)">놀이터 그늘막</div>
+      <div class="sticky pop" style="--i:4;left:220px;top:110px;background:#BDEBDD">자전거 도로</div>
+      <div class="sticky pop" style="--i:5;left:410px;top:76px;background:#FFD1DC;transform:rotate(2deg)">작은 도서관</div>
+      <div class="sticky pop" style="--i:6;left:600px;top:120px;background:#D9CCFF">횡단보도 신호</div>
+      <div class="sticky pop" style="--i:7;left:120px;top:290px;background:#BDEBDD;transform:rotate(2deg)">분리수거장</div>
+      <div class="sticky pop" style="--i:8;left:330px;top:300px;background:#FFE58A">벤치 더 많이</div>
+      <div class="sticky pop" style="--i:9;left:540px;top:310px;background:#FFD1DC;transform:rotate(-2deg)">공원 화장실</div>
+      <div class="pop" style="--i:10;position:absolute;left:520px;top:62px;width:42px;height:42px;border-radius:50%;background:var(--accent);color:#fff;font-weight:900;font-size:22px;display:grid;place-items:center">+3</div>
+    </div>
+  </div>
+  <svg class="mascot"><use href="#drop"/></svg>
+</section>
+
+<!-- 19 Subject ideas -->
+<section class="slide" data-title="교과별 아이디어">
+  <p class="label a">Scene 4 · Projects</p>
+  <h2 class="a" style="--i:1">어느 교과든, <em>결과물</em>이 달라집니다</h2>
+  <div class="body">
+    <div class="six">
+      <div class="card a" style="--i:2"><div class="ico"><svg><use href="#i-book"/></svg></div><h3>국어</h3><p>책 표지 다시 만들기, 인물 SNS 프로필</p></div>
+      <div class="card a" style="--i:3"><div class="ico"><svg><use href="#i-calc"/></svg></div><h3>수학</h3><p>우리 반 통계 인포그래픽</p></div>
+      <div class="card a" style="--i:4"><div class="ico"><svg><use href="#i-globe"/></svg></div><h3>사회</h3><p>지역 홍보 포스터, 역사 타임라인</p></div>
+      <div class="card a" style="--i:5"><div class="ico"><svg><use href="#i-flask"/></svg></div><h3>과학</h3><p>실험 보고서, 생태계 관계도</p></div>
+      <div class="card a" style="--i:6"><div class="ico"><svg><use href="#i-chat"/></svg></div><h3>영어</h3><p>자기소개 영상, 여행 브로슈어</p></div>
+      <div class="card a" style="--i:7"><div class="ico"><svg><use href="#i-brush"/></svg></div><h3>미술·창체</h3><p>캠페인 포스터, 진로 명함</p></div>
+    </div>
+  </div>
+  <svg class="mascot"><use href="#drop"/></svg>
+</section>
+
+<!-- 20 40-minute lesson -->
+<section class="slide" data-title="40분 수업">
+  <p class="label a">Scene 5 · A 40-minute lesson</p>
+  <h2 class="a" style="--i:1">캔바 시간은 <em>17분</em>, 나머지는 생각과 나눔</h2>
+  <div class="body" style="flex-direction:column;justify-content:center">
+    <div class="tl">
+      <div class="grow-x" style="--i:2;flex:5;background:#9A88C9">5분</div>
+      <div class="grow-x" style="--i:3;flex:10;background:#9A88C9">10분</div>
+      <div class="grow-x" style="--i:4;flex:17;background:var(--main)">17분</div>
+      <div class="grow-x" style="--i:5;flex:8;background:var(--accent)">8분</div>
+    </div>
+    <div class="tl-desc">
+      <div class="a" style="--i:3;flex:5"><b>도입</b>우수 예시 감상</div>
+      <div class="a" style="--i:4;flex:10"><b>조사</b>모둠별 자료 찾기, 역할 나누기</div>
+      <div class="a" style="--i:5;flex:17"><b>함께 만들기</b>템플릿으로 지역 홍보 포스터 공동 제작</div>
+      <div class="a" style="--i:6;flex:8"><b>나눔</b>갤러리 워크, 댓글 피드백</div>
+    </div>
+  </div>
+  <svg class="mascot"><use href="#drop"/></svg>
+</section>
+
+<!-- 21 Live demo -->
+<section class="slide dark" data-title="시연">
+  <p class="label a">Live demo</p>
+  <h2 class="a" style="--i:1">지금 같이 만들어 봅니다</h2>
+  <div class="body">
+    <div class="row" style="align-items:center;gap:60px">
+      <ol class="col" style="flex:1;margin:0;padding:0;list-style:none;gap:16px;font-size:32px;font-weight:700">
+        <li class="a" style="--i:2;display:flex;gap:18px;align-items:center"><span class="tag" style="background:#fff">1</span>‘중학교 과학 학습지’ 검색</li>
+        <li class="a" style="--i:3;display:flex;gap:18px;align-items:center"><span class="tag" style="background:#fff">2</span>제목과 사진을 우리 반 내용으로</li>
+        <li class="a" style="--i:4;display:flex;gap:18px;align-items:center"><span class="tag" style="background:#fff">3</span>배경 제거로 사진 다듬기</li>
+        <li class="a" style="--i:5;display:flex;gap:18px;align-items:center"><span class="tag" style="background:#fff">4</span>템플릿 링크 만들어 채팅창에 공유</li>
+        <li class="a" style="--i:6;display:flex;gap:18px;align-items:center"><span class="tag" style="background:#fff">5</span>참가자 사본에 댓글 달기</li>
+      </ol>
+      <div class="col pop" style="--i:7;align-items:center;gap:22px">
+        <svg class="mascot mid bob"><use href="#drop"/></svg>
+        <div id="demo-video"></div>
+        <div class="cap" style="color:#E5DAFF">목표 시간 <b style="color:#fff">10분</b></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 22 AI -->
+<section class="slide" data-title="AI 기능">
+  <p class="label a">Magic tools</p>
+  <h2 class="a" style="--i:1">AI는 <em>초안</em>을, 판단은 <em>선생님</em>이</h2>
+  <div class="body">
+    <div class="six">
+      <div class="card a" style="--i:2"><div class="ico"><svg><use href="#i-spark"/></svg></div><h3>매직 디자인</h3><p>주제를 적으면 디자인 초안</p></div>
+      <div class="card a" style="--i:3"><div class="ico"><svg><use href="#i-pen"/></svg></div><h3>매직 라이팅</h3><p>글 초안, 요약, 문체 바꾸기</p></div>
+      <div class="card a" style="--i:4"><div class="ico"><svg><use href="#i-brush"/></svg></div><h3>배경 제거</h3><p>사진 배경을 클릭 한 번에</p></div>
+      <div class="card a" style="--i:5"><div class="ico"><svg><use href="#i-x"/></svg></div><h3>매직 지우개</h3><p>사진 속 불필요한 물체 지우기</p></div>
+      <div class="card a" style="--i:6"><div class="ico"><svg><use href="#i-share"/></svg></div><h3>매직 확장</h3><p>사진 바깥을 자연스럽게 넓히기</p></div>
+      <div class="card a" style="--i:7"><div class="ico"><svg><use href="#i-globe"/></svg></div><h3>번역</h3><p>디자인 전체를 다른 언어로</p></div>
+    </div>
+  </div>
+  <p class="cap a" style="--i:8;margin:0 0 24px">학생 계정의 AI 기능은 학교·교사 설정에 따라 제한될 수 있어요. 수업 전에 확인하세요.</p>
+  <svg class="mascot"><use href="#drop"/></svg>
+</section>
+
+<!-- 23 Safety -->
+<section class="slide" data-title="저작권과 개인정보">
+  <p class="label a">Before you share</p>
+  <h2 class="a" style="--i:1">공유 버튼 누르기 전, <em>세 가지</em>만 확인</h2>
+  <div class="body">
+    <div class="row">
+      <div class="card a" style="--i:2;flex:1">
+        <span class="tag warn" style="display:inline-flex;gap:6px;align-items:center"><svg style="width:20px;height:20px"><use href="#i-x"/></svg>이렇게 하지 마세요</span>
+        <ul style="margin:20px 0 0;padding-left:30px;font-size:28px;line-height:1.7">
+          <li>학생 얼굴·실명이 보이는 자료를 공개 링크로</li>
+          <li>출처 모르는 외부 이미지·음원 그대로 쓰기</li>
+          <li>AI가 만든 글을 확인 없이 배포</li>
+        </ul>
+      </div>
+      <div class="card a" style="--i:3;flex:1">
+        <span class="tag" style="display:inline-flex;gap:6px;align-items:center"><svg style="width:20px;height:20px"><use href="#i-check"/></svg>이렇게 하세요</span>
+        <ul style="margin:20px 0 0;padding-left:30px;font-size:28px;line-height:1.7">
+          <li>링크 권한은 <b>우리 반만</b> 또는 보기 전용</li>
+          <li>캔바 제공 소스, 출처 표시한 자료 쓰기</li>
+          <li>AI 결과물은 사실 확인 후 <b>AI 활용</b> 표시</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <svg class="mascot"><use href="#drop"/></svg>
+</section>
+
+<!-- 24 Result -->
+<section class="slide" data-title="결과">
+  <p class="label a">The result</p>
+  <div class="row" style="flex:1;align-items:center;gap:80px">
+    <div style="flex:1">
+      <h2 class="a" style="--i:1">학습지 한 장,<br><em>3분의 1</em> 시간이면<br>됩니다</h2>
+      <p class="sub a" style="--i:2">빈 화면에서 60분 걸리던 일이 템플릿에서는 20분.</p>
+    </div>
+    <div class="bars" style="margin-bottom:60px">
+      <div class="bar grow-y" style="--i:2;height:420px;background:#C9C1DD"><span class="v" style="color:var(--muted)"><span data-count="60">60</span>분</span><span class="k">빈 화면에서</span></div>
+      <div class="bar grow-y" style="--i:4;height:140px;background:var(--main)"><span class="v" style="color:var(--main)"><span data-count="20">20</span>분</span><span class="k">템플릿에서</span></div>
+    </div>
+  </div>
+  <span class="example" data-example>예시 수치</span>
+  <svg class="mascot"><use href="#drop"/></svg>
+</section>
+
+<!-- 25 Practice -->
+<section class="slide" data-title="실습 미션">
+  <p class="label a">Your turn</p>
+  <h2 class="a" style="--i:1">이제 <em>직접</em> 해 볼 차례</h2>
+  <div class="body">
+    <div class="row">
+      <div class="card a" style="--i:2;flex:1;padding:44px 36px;min-height:300px;box-sizing:border-box"><span class="tag">Mission 1 · 15분</span><h3 style="font-size:44px;margin:26px 0 14px">수업 PPT 5장</h3><p class="cap" style="margin:0">검색 → 글꼴·색 바꾸기 → 사진 넣기</p></div>
+      <div class="card a" style="--i:3;flex:1;padding:44px 36px;min-height:300px;box-sizing:border-box"><span class="tag">Mission 2 · 15분</span><h3 style="font-size:44px;margin:26px 0 14px">디지털 학습지</h3><p class="cap" style="margin:0">A4 학습지 → 템플릿 링크 → 옆자리와 교환</p></div>
+      <div class="card a" style="--i:4;flex:1;padding:44px 36px;min-height:300px;box-sizing:border-box;background:var(--accent-soft)"><span class="tag warn">Mission 3 · 20분</span><h3 style="font-size:44px;margin:26px 0 14px">화이트보드 협업</h3><p class="cap" style="margin:0">모둠 구역 → 포스트잇 의견 → 스티커 투표</p></div>
+    </div>
+  </div>
+  <svg class="mascot"><use href="#drop"/></svg>
+</section>
+
+<!-- 26 One sentence -->
+<section class="slide dark" data-title="한 문장 정리">
+  <p class="label a">In one sentence</p>
+  <div class="row" style="flex:1;align-items:center;gap:60px">
+    <div style="flex:1">
+      <h1 class="a" style="--i:1;font-size:88px">빈 화면 대신 <em>템플릿</em>에서,<br>혼자 대신 <em>함께</em>.</h1>
+      <p class="sub a" style="--i:3">내일 수업 자료 한 장부터 캔바로 시작해 보세요. 감사합니다.</p>
+    </div>
+    <div class="col pop" style="--i:2;align-items:center;gap:20px">
+      <div class="bubble" style="color:var(--ink)">질문 있으신가요?</div>
+      <svg class="mascot big bob"><use href="#drop"/></svg>
+    </div>
+  </div>
+</section>
+
+<div id="hud"><b id="cur">01</b> / <span id="tot">26</span></div>
+</div>
+</div>
+
+<div id="controls">
+  <button type="button" id="prev" aria-label="이전 슬라이드">←</button>
+  <button type="button" id="next" aria-label="다음 슬라이드">→</button>
+  <button type="button" id="fs" aria-label="전체화면">전체화면</button>
+</div>
+
+<script>
+// ===== 발표 전에 바꿔 쓰는 설정 =====
+const CONFIG = {
+  // 시연 영상 주소(YouTube 등). 비워 두면 버튼이 나타나지 않습니다.
+  demoVideoUrl: "",
+  // 예시 수치를 실제 설문·측정값으로 바꿨다면 false로 바꾸세요. ("예시 수치" 표시가 사라집니다)
+  showExampleTags: true,
+};
+
+(() => {
+  const stage = document.getElementById("stage");
+  const slides = [...document.querySelectorAll(".slide")];
+  const cur = document.getElementById("cur"), tot = document.getElementById("tot"), bar = document.getElementById("progress");
+  const pad = n => String(n).padStart(2, "0");
+  tot.textContent = pad(slides.length);
+  let idx = 0;
+
+  if (!CONFIG.showExampleTags) document.querySelectorAll("[data-example]").forEach(e => e.hidden = true);
+  if (CONFIG.demoVideoUrl) {
+    const a = document.createElement("a");
+    a.className = "btn"; a.href = CONFIG.demoVideoUrl; a.target = "_blank"; a.rel = "noopener";
+    a.textContent = "▶ 시연 영상 보기";
+    document.getElementById("demo-video").appendChild(a);
+  }
+  const copies = document.getElementById("copies");
+  for (let i = 0; i < 30; i++) {
+    const d = document.createElement("div");
+    d.className = "copy pop";
+    d.style.setProperty("--i", (2 + i * 0.12).toFixed(2));
+    copies.appendChild(d);
+  }
+
+  function fit() {
+    const s = Math.min(window.innerWidth / 1600, window.innerHeight / 900);
+    stage.style.transform = `scale(${s})`;
+  }
+  window.addEventListener("resize", fit); fit();
+
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function countUp(slide) {
+    slide.querySelectorAll("[data-count]").forEach(el => {
+      const target = parseFloat(el.dataset.count), dec = +(el.dataset.dec || 0);
+      if (reduce) { el.textContent = target.toFixed(dec); return; }
+      const t0 = performance.now(), dur = 700, delay = 350;
+      el.textContent = (0).toFixed(dec);
+      const step = now => {
+        const p = Math.min(1, Math.max(0, (now - t0 - delay) / dur));
+        el.textContent = (target * (1 - Math.pow(1 - p, 3))).toFixed(dec);
+        if (p < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    });
+  }
+  let typingTimer;
+  function typeIn(slide) {
+    clearInterval(typingTimer);
+    slide.querySelectorAll(".typed").forEach(el => {
+      const text = el.dataset.text;
+      if (reduce) { el.textContent = text; return; }
+      el.textContent = ""; let n = 0;
+      setTimeout(() => {
+        typingTimer = setInterval(() => { el.textContent = text.slice(0, ++n); if (n >= text.length) clearInterval(typingTimer); }, 70);
+      }, 400);
+    });
+  }
+
+  function go(n, fromHash) {
+    n = Math.max(0, Math.min(slides.length - 1, n));
+    slides[idx].classList.remove("active");
+    idx = n;
+    const s = slides[idx];
+    void s.offsetWidth; // restart CSS animations
+    s.classList.add("active");
+    stage.classList.toggle("on-dark", s.classList.contains("dark"));
+    cur.textContent = pad(idx + 1);
+    bar.style.width = ((idx + 1) / slides.length * 100) + "%";
+    document.title = `${pad(idx + 1)} ${s.dataset.title || ""} · 캔바 교실 스토리`;
+    countUp(s); typeIn(s);
+    if (!fromHash) { try { history.replaceState(null, "", "#" + (idx + 1)); } catch (e) {} }
+  }
+  const next = () => go(idx + 1), prev = () => go(idx - 1);
+
+  function fromHash() {
+    const m = /^#(\d+)$/.exec(location.hash);
+    return m ? parseInt(m[1], 10) - 1 : 0;
+  }
+  window.addEventListener("hashchange", () => go(fromHash(), true));
+
+  document.addEventListener("keydown", e => {
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    if (["ArrowRight", "PageDown", " ", "Enter"].includes(e.key)) { e.preventDefault(); next(); }
+    else if (["ArrowLeft", "PageUp", "Backspace"].includes(e.key)) { e.preventDefault(); prev(); }
+    else if (e.key === "Home") go(0);
+    else if (e.key === "End") go(slides.length - 1);
+    else if (e.key === "f" || e.key === "F") toggleFs();
+  });
+  // click: right 3/4 of the screen = next, left 1/4 = previous
+  document.getElementById("viewport").addEventListener("click", e => {
+    if (e.target.closest("a,button")) return;
+    (e.clientX < window.innerWidth * 0.25 ? prev : next)();
+  });
+  let sx = null, sy = null;
+  document.addEventListener("touchstart", e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+  document.addEventListener("touchend", e => {
+    if (sx === null) return;
+    const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) (dx < 0 ? next : prev)();
+    sx = sy = null;
+  });
+  document.getElementById("prev").addEventListener("click", prev);
+  document.getElementById("next").addEventListener("click", next);
+  function toggleFs() {
+    try {
+      if (document.fullscreenElement) document.exitFullscreen();
+      else document.documentElement.requestFullscreen().catch(() => {});
+    } catch (e) {}
+  }
+  document.getElementById("fs").addEventListener("click", toggleFs);
+
+  idx = 0;
+  go(fromHash(), true);
+})();
+</script>
